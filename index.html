@@ -1,1 +1,730 @@
-
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset = "utf-8">
+    <title>shogi_test</title>
+  </head>
+  <body>
+    <h1>shogi_test</h1>
+    <py-script>
+      board = [["L ", "N ", "S ", "G ", "K ", "G ", "S ", "N ", "L "], ["- ", "R ", "- ", "- ", "- ", "- ", "- ", "B ", "- "], ["P ", "P ", "P ", "P ", "P ", "P ", "P ", "P ", "P "], ["- ", "- ", "- ", "- ", "- ", "- ", "- ", "- ", "- "], ["- ", "- ", "- ", "- ", "- ", "- ", "- ", "- ", "- "], ["- ", "- ", "- ", "- ", "- ", "- ", "- ", "- ", "- "], ["p ", "p ", "p ", "p ", "p ", "p ", "p ", "p ", "p "], ["- ", "b ", "- ", "- ", "- ", "- ", "- ", "r ", "- "], ["l ", "n ", "s ", "g ", "k ", "g ", "s ", "n ", "l "]] #Define the board
+      count = 0   #Move count
+      next = 0    #Next player (0: Black, 1: White)
+      end = False #Game end flag
+      check = False
+      checkmate = False
+      move_need = False
+      movable = True
+      players = ["Black", "White"]    #Player names
+      b_pieces = ["L ", "L*", "N ", "N*", "S ", "S*", "G ", "K ", "R ", "R*", "B ", "B*", "P ", "P*"] #Black's pieces
+      w_pieces = ["l ", "l*", "n ", "n*", "s ", "s*", "g ", "k ", "r ", "r*", "b ", "b*", "p ", "p*"] #White's pieces
+      pieces = b_pieces + w_pieces
+      b_hands = []    #Black's pieces in hand
+      w_hands = []    #White's pieces in hand
+      target = ""   #Target piece
+      analyse_target = ""
+      check_list = []
+      checker_coordinates = []
+      avoid = []
+      from_x = 0  #Target piece's x coordinate
+      from_y = 0  #Target piece's y coordinate
+      to_x = 0    #Target piece's x coordinate after move
+      to_y = 0    #Target piece's y coordinate after move
+      K_x = 5
+      k_x = 5
+      K_y = 1
+      k_y = 9
+      print("Welcome to test app for Shogi.")
+      print("I will explain the rules.")
+      print("1. At the start of each tern, a player enters wheter exit or continue.")
+      print("2. If exit is entered, the player loses the game.")
+      print("3. When you enter your next move, you will enter four digits number. The first two digits indicate the coordinates of the piece you want to move, and the last two digits indicate the coordinates where you want to move the piece.")
+      print("4. If you want to put a piece from your hand onto the board, enter 0 for the first digit if you are Black, or the second digit if you are White.")
+      while not end:  #Main game loop
+          for i in range(len(b_hands)):
+              if b_hands[i] == "L*":
+                  b_hands[i] = "L "
+              elif b_hands[i] == "N*":
+                  b_hands[i] = "N "
+              elif b_hands[i] == "S*":
+                  b_hands[i] = "S "
+              elif b_hands[i] == "R*":
+                  b_hands[i] = "R "
+              elif b_hands[i] == "B*":
+                  b_hands[i] = "B "
+              elif b_hands[i] == "P*":
+                  b_hands[i] = "P "
+          for i in range(len(w_hands)):
+              if w_hands[i] == "l*":
+                  w_hands[i] = "l "
+              elif w_hands[i] == "n*":
+                  w_hands[i] = "n "
+              elif w_hands[i] == "s*":
+                  w_hands[i] = "s "
+              elif w_hands[i] == "r*":
+                  w_hands[i] = "r "
+              elif w_hands[i] == "b*":
+                  w_hands[i] = "b "
+              elif w_hands[i] == "p*":
+                  w_hands[i] = "p "
+          ok = False  #Input validation flag
+          print("")
+          for i in range(9):  #Display the board
+              if i == 0:
+                  print("9  8  7  6  5  4  3  2  1")
+              print( " ".join((board[i])) + str( i + 1 ))
+          print("")
+          print("Black's pieces in hand: " + str(b_hands))
+          print("White's pieces in hand: " + str(w_hands))
+          if next == 0:
+              print("Black's turn")
+          else:
+              print("White's turn")
+          print("")
+          
+          while not ok:   #Move input loop
+              move = input("Confirm your move: ") #Get the move input
+              if move.lower() == "exit":
+                  ok = True
+                  end = True
+                  print( players[next] + " lost the game.")
+                  break
+              elif not move.isdigit() or len(move) != 4:    #Validate the input format
+                  print("Invalid input.")
+                  continue
+              else:
+                  if int(move[2]) == 0 or int(move[3]) == 0:    #Validate the target coordinates
+                      print("Invalid input.")
+                      continue
+                  else:
+                      if int(move[next]) == 0:    #Piece from hand
+                          hand_index = int(input("Enter the index of the piece in your hand to put on the board: "))  #Get the index of the piece in hand
+                          if next == 0:   #Compare the hand index with the length of the hand pieces
+                              if hand_index > (len(b_hands)):
+                                  print("Invalid input.")
+                                  continue
+                              else:
+                                  target = b_hands[hand_index - 1]
+                          else:
+                              if hand_index > (len(w_hands)):
+                                  print("Invalid input.")
+                                  continue
+                              else:
+                                  target = w_hands[hand_index - 1]
+                          to_x = int(move[2]) #Get the target coordinates
+                          to_y = int(move[3])
+                          if board[ to_y - 1 ][ 9 - to_x ] == "- ":    #Validate the target on the board
+                              if next == 0:
+                                  if target == "P " and any( board[ i ][ 9 - to_x ] == "P " for i in range(9) ):
+                                      print("Invalid input.")
+                                      continue
+                                  elif to_y >= 8 and target == "N ":
+                                      print("Invalid input.")
+                                  elif to_y == 9:
+                                      if target in ["P ", "L ", "N "]:
+                                          print("Invalid input.")
+                                          continue
+                                      else:
+                                          ok = True
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                          b_hands.pop(hand_index - 1)
+                                  else:
+                                      ok = True
+                                      board[ to_y - 1 ][ 9 - to_x ] = target
+                                      b_hands.pop(hand_index - 1)
+                              else:
+                                  if target == "p " and any( board[ i ][ 9 - to_x ] == "p " for i in range(9) ):
+                                      print("Invalid input.")
+                                      continue
+                                  elif to_y <= 2 and target == " n":
+                                      print("Invalid input.")
+                                  elif to_y == 1:
+                                      if target in ["p ", "l ", "n "]:
+                                          print("Invalid input.")
+                                          continue
+                                      else:
+                                          ok = True
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                          w_hands.pop(hand_index - 1)
+                                  else:
+                                      ok = True
+                                      board[ to_y - 1 ][ 9 - to_x ] = target
+                                      w_hands.pop(hand_index - 1)
+                          else:
+                              print("Invalid input.")
+                              continue
+                      else:
+                          if int(move[2]) == 0 or int(move[3]) == 0:    #Validate the source coordinates
+                              print("Invalid input.")
+                              continue
+                          else:
+                              from_x = int(move[0]) #Get the target coordinates
+                              from_y = int(move[1])
+                              to_x = int(move[2])
+                              to_y = int(move[3])
+                              target = board[ from_y - 1 ][ 9 - from_x ]   #Get the target piece
+                      if target == "- ":    #Validate the target piece
+                          print("Invalid input.")
+                          continue
+                      elif next == 0 and target in b_pieces:  #Piece on the board
+                          if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                              print("Invalid input.")
+                              continue
+                          else:
+                              if target == "P ":
+                                  if from_x == to_x and to_y - from_y == 1:
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      if to_y == 9:
+                                          board[ to_y - 1 ][ 9 - to_x ] = "P*"
+                                      elif to_y >= 7:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "P*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "P "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "P*":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and to_y - from_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and to_y - from_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "P*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "L ":
+                                  if from_x == to_x and to_y > from_y and ((not(any( board[ i ][ 9 - to_x ] in b_pieces for i in range( ( from_y), ( to_y - 1), 1)))) and (not(any( board[ i ][ 9 - to_x ] in w_pieces for i in range( ( from_y), ( to_y - 1), 1))))):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      if to_y == 9:
+                                          board[ to_y - 1 ][ 9 - to_x ] = "L*"
+                                      elif to_y >= 7:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "L*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "L "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "L*":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and to_y - from_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and to_y - from_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "L*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "N ":
+                                  if (from_x - to_x == 1 and to_y - from_y == 2) or (to_x - from_x == 1 and to_y - from_y == 2):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      if to_y >= 8:
+                                          board[ to_y - 1 ][ 9 - to_x ] = "N*"
+                                      elif to_y >= 7:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "N*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "N "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "N*":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and to_y - from_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and to_y - from_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "N*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "S ":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x - to_x == 1 and to_y - from_y == 1) or (to_x - from_x == 1 and to_y - from_y == 1) or (from_x - to_x == 1 and from_y - to_y == 1) or (to_x - from_x == 1 and from_y - to_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      if to_y >= 7 or from_y >= 7:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "S*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "S "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "S*":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and to_y - from_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and to_y - from_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "S*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "G ":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and to_y - from_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and to_y - from_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "G "
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "R ":
+                                  if ((from_x == to_x) or (from_y == to_y)) and ((not(any( board[ i ][ 9 - to_x ] in pieces for i in range( min(from_y, to_y), max(from_y, to_y) - 1 )))) and (not(any( board[ to_y - 1 ][ j ] in pieces for j in range( min(9 - from_x, 9 - to_x) + 1, max(9 - from_x, 9 - to_x) ))))):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      if to_y >= 7 or from_y >= 7:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "R*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "R "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "R*":
+                                  if (((from_x == to_x) or (from_y == to_y)) and ((not(any( board[ i ][ 9 - to_x ] in pieces for i in range( min(from_y, to_y), max(from_y, to_y) - 1 )))) and (not(any( board[ to_y - 1 ][ j ] in pieces for j in range( min(9 - from_x, 9 - to_x) + 1, max(9 - from_x, 9 - to_x) ))))) or (from_x - to_x == 1 and to_y - from_y == 1) or (to_x - from_x == 1 and to_y - from_y == 1) or (from_x - to_x == 1 and from_y - to_y == 1) or (to_x - from_x == 1 and from_y - to_y == 1)):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "R*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "B ":
+                                  if abs(from_x - to_x) == abs(from_y - to_y) and (not any(board[min(from_y, to_y) - 1 + i][9 - (from_x + i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x > from_x and to_y > from_y) and not any(board[min(from_y, to_y) - 1 + i][9 - (from_x - i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x < from_x and to_y > from_y) and not any(board[max(from_y, to_y) - 1 - i][9 - (from_x + i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x > from_x and to_y < from_y) and not any(board[max(from_y, to_y) - 1 - i][9 - (from_x - i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x < from_x and to_y < from_y)):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      if to_y >= 7 or from_y >= 7:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "B*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "B "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "B*":
+                                  if abs(from_x - to_x) == abs(from_y - to_y) and (not any(board[min(from_y, to_y) - 1 + i][9 - (from_x + i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x > from_x and to_y > from_y) and not any(board[min(from_y, to_y) - 1 + i][9 - (from_x - i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x < from_x and to_y > from_y) and not any(board[max(from_y, to_y) - 1 - i][9 - (from_x + i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x > from_x and to_y < from_y) and not any(board[max(from_y, to_y) - 1 - i][9 - (from_x - i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x < from_x and to_y < from_y)) or (from_x - to_x == 1 and to_y == from_y) or (to_x - from_x == 1 and to_y == from_y ) or (from_x == to_x and from_y - to_y == 1) or (from_x == to_x and to_y - from_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "B*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "K ":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and to_y - from_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and to_y - from_y == 1) or (from_x - to_x == 1 and from_y - to_y == 1) or (to_x - from_x == 1 and from_y - to_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          b_hands.append( board[ to_y - 1 ][ 9 - to_x ].upper() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "K "
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                      K_x = to_x
+                                      K_y = to_y
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              else:
+                                  print("Invalid input.")
+                                  continue
+                      elif next == 1 and target in w_pieces:  #Piece on the board
+                          if board[ to_y - 1 ][ 9 - to_x ] in w_pieces:
+                              print("Invalid input.")
+                              continue
+                          else:
+                              if target == "p ":
+                                  if from_x == to_x and from_y - to_y == 1:
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      if to_y == 1:
+                                          board[ to_y - 1 ][ 9 - to_x ] = "p*"
+                                      elif to_y <= 3:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "p*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "p "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "p*":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and from_y - to_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and from_y - to_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "p*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "l ":
+                                  if from_x == to_x and to_y < from_y and ((not(any( board[ i ][ 9 - to_x ] in b_pieces for i in range( ( to_y ), ( from_y - 2 ), 1)))) and (not(any( board[ i ][ 9 - to_x ] in w_pieces for i in range( ( to_y ), ( from_y - 2 ), 1))))):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      if to_y == 1:
+                                          board[ to_y - 1 ][ 9 - to_x ] = "l*"
+                                      elif to_y <= 3:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "l*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "l "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "l*":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and from_y - to_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and from_y - to_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "l*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "n ":
+                                  if (from_x - to_x == 1 and to_y - from_y == -2) or (to_x - from_x == 1 and to_y - from_y == -2):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      if to_y <= 2:
+                                          board[ to_y - 1 ][ 9 - to_x ] = "n*"
+                                      elif to_y <= 3:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "n*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "n "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "n*":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and from_y - to_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and from_y - to_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "n*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "s ":
+                                  if (from_x == to_x and to_y - from_y == -1) or (from_x - to_x == 1 and to_y - from_y == 1) or (to_x - from_x == 1 and to_y - from_y == 1) or (from_x - to_x == 1 and from_y - to_y == 1) or (to_x - from_x == 1 and from_y - to_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      if to_y <= 3 or from_y <= 3:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "s*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "s "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "s*":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and from_y - to_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and from_y - to_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "s*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "g ":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and from_y - to_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and from_y - to_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "g "
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "r ":
+                                  if ((from_x == to_x) or (from_y == to_y)) and ((not(any( board[ i ][ 9 - to_x ] in pieces for i in range( min(from_y, to_y), max(from_y, to_y) - 1 )))) and (not(any( board[ to_y - 1 ][ j ] in pieces for j in range( min(9 - from_x, 9 - to_x) + 1, max(9 - from_x, 9 - to_x) ))))):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      if to_y <= 3 or from_y <= 3:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "r*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "r "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "r*":
+                                  if (((from_x == to_x) or (from_y == to_y)) and ((not(any( board[ i ][ 9 - to_x ] in pieces for i in range( min(from_y, to_y), max(from_y, to_y) - 1 )))) and (not(any( board[ to_y - 1 ][ j ] in pieces for j in range( min(9 - from_x, 9 - to_x) + 1, max(9 - from_x, 9 - to_x) ))))) or (from_x - to_x == 1 and to_y - from_y == 1) or (to_x - from_x == 1 and to_y - from_y == 1) or (from_x - to_x == 1 and from_y - to_y == 1) or (to_x - from_x == 1 and from_y - to_y == 1)):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "r*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "b ":
+                                  if abs(from_x - to_x) == abs(from_y - to_y) and (not any(board[min(from_y, to_y) - 1 + i][9 - (from_x + i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x > from_x and to_y > from_y) and not any(board[min(from_y, to_y) - 1 + i][9 - (from_x - i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x < from_x and to_y > from_y) and not any(board[max(from_y, to_y) - 1 - i][9 - (from_x + i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x > from_x and to_y < from_y) and not any(board[max(from_y, to_y) - 1 - i][9 - (from_x - i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x < from_x and to_y < from_y)):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      if to_y <= 3 or from_y <= 3:
+                                          promote = input("You can promote if you want. Enter yes to promote: ")
+                                          if promote.lower() == "yes":
+                                              board[ to_y - 1 ][ 9 - to_x ] = "b*"
+                                          else:
+                                              board[ to_y - 1 ][ 9 - to_x ] = "b "
+                                      else:
+                                          board[ to_y - 1 ][ 9 - to_x ] = target
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "b*":
+                                  if (abs(from_x - to_x) == abs(from_y - to_y) and (not any(board[min(from_y, to_y) - 1 + i][9 - (from_x + i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x > from_x and to_y > from_y) and not any(board[min(from_y, to_y) - 1 + i][9 - (from_x - i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x < from_x and to_y > from_y) and not any(board[max(from_y, to_y) - 1 - i][9 - (from_x + i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x > from_x and to_y < from_y) and not any(board[max(from_y, to_y) - 1 - i][9 - (from_x - i)] in pieces for i in range(1, abs(from_x - to_x)) if to_x < from_x and to_y < from_y))) or (from_x - to_x == 1 and to_y == from_y) or (to_x - from_x == 1 and to_y == from_y ) or (from_x == to_x and from_y - to_y == 1) or (from_x == to_x and to_y - from_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "b*"
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              elif target == "k ":
+                                  if (from_x == to_x and to_y - from_y == 1) or (from_x == to_x and from_y - to_y == 1) or (from_x - to_x == 1 and to_y == from_y) or (from_x - to_x == 1 and to_y - from_y == 1) or (to_x - from_x == 1 and to_y == from_y) or (to_x - from_x == 1 and to_y - from_y == 1) or (from_x - to_x == 1 and from_y - to_y == 1) or (to_x - from_x == 1 and from_y - to_y == 1):
+                                      if board[ to_y - 1 ][ 9 - to_x ] in b_pieces:
+                                          board[ to_y - 1 ][ 9 - to_x ] == board[ to_y - 1 ][ 9 - to_x ].translate(str.maketrans({"*" : " ", " " : " "}))
+                                          w_hands.append( board[ to_y - 1 ][ 9 - to_x ].lower() )
+                                      board[ to_y - 1 ][ 9 - to_x ] = "k "
+                                      board[ from_y - 1 ][ 9 - from_x ] = "- "
+                                      ok = True
+                                      k_x = to_x
+                                      k_y = to_y
+                                  else:
+                                      print("Invalid input.")
+                                      continue
+                              else:
+                                  print("Invalid input.")
+                                  continue
+                      else:
+                          print("Invalid input.")
+                          continue
+          check = False
+          avoid = []
+          check_list = []
+          for i in range(9):
+              for j in range(9):
+                  analyse_target = board[i][j]
+                  if analyse_target == "P ":
+                      if (9 - j) == k_x and (i + 1) == k_y:
+                          check_list.append("P ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "P*":
+                      if (abs((9 - j) - k_x) <= 1 and ( 0 <= k_y - 1 - i <= 1)) or ((9 - j) == k_x and (abs((i + 1) - k_y) <= 1)):
+                          check_list.append("P*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "L ":
+                      if (9 - j) == k_x and (i + 1) < k_y and ((not(any( board[ k ][ j ] in b_pieces for k in range( ( i + 1 ), ( k_y - 2 ), 1)))) and (not(any( board[ k ][ j ] in w_pieces for k in range( ( i + 1 ), ( k_y - 2 ), 1))))):
+                          check_list.append("L ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "L*":
+                      if (abs((9 - j) - k_x) <= 1 and ( 0 <= k_y - 1 - i <= 1)) or ((9 - j) == k_x and (abs((i + 1) - k_y) <= 1)):
+                          check_list.append("L*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "N ":
+                      if (abs((9 - j) - k_x)) == 1 and ( k_y - 1 - i == 2):
+                          check_list.append("N ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "N*":
+                      if (abs((9 - j) - k_x) <= 1 and ( 0 <= k_y - 1 - i <= 1)) or ((9 - j) == k_x and (abs((i + 1) - k_y) <= 1)):
+                          check_list.append("N*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "S ":
+                      if (abs((9 - j) - k_x) <= 1 and ( k_y - 1 - i == 1)) or (abs((9 - j) - k_x == 1) and ( i - (k_y - 1) == 1)):
+                          check_list.append("S ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "S*":
+                      if (abs((9 - j) - k_x) <= 1 and ( 0 <= k_y - 1 - i <= 1)) or ((9 - j) == k_x and (abs((i + 1) - k_y) <= 1)):
+                          check_list.append("S*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "G ":
+                      if (abs((9 - j) - k_x) <= 1 and ( 0 <= k_y - 1 - i <= 1)) or ((9 - j) == k_x and (abs((i + 1) - k_y) <= 1)):
+                          check_list.append("G ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "R ":
+                      if ((9 - k_x == j) or ( k_y - 1 == i )) and ((not(any( board[ k ][ j ] in pieces for k in range( min( k_y, i + 1 ), max( k_y, i + 1 ) - 1 )))) and (not(any( board[ i ][ k ] in pieces for k in range( min(9 - k_x, j) + 1, max(9 - k_x, j) ))))):
+                          check_list.append("R ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "R*":
+                      if ((9 - k_x == j) or ( k_y - 1 == i )) and ((not(any( board[ k ][ j ] in pieces for k in range( min( k_y, i + 1 ), max( k_y, i + 1 ) - 1 )))) and (not(any( board[ i ][ k ] in pieces for k in range( min(9 - k_x, j) + 1, max(9 - k_x, j) ))))) or ((abs( 9 - j - k_x)) <= 1 and abs( i + 1 - k_y ) <= 1):
+                          check_list.append("R*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "B ":
+                      if abs( 9 - j - k_x ) == abs( i + 1 - k_y) and (not any(board[min(i + 1, k_y) - 1 + k][9 - ( 9 - j + k)] in pieces for k in range(1, abs(9 - j - k_x)) if k_x > 9 - j and k_y > i + 1) and not any(board[min( i + 1, k_y) - 1 + k][9 - (from_x - k)] in pieces for k in range(1, abs( 9 - j - k_x)) if k_x < 9 - j and k_y > i + 1) and not any(board[max( i + 1, k_y) - 1 - k][9 - ( 9 - j + k)] in pieces for k in range(1, abs( 9 - j - k_x)) if k_x > 9 - j and k_y < i + 1) and not any(board[max( i + 1, k_y) - 1 - k][9 - ( 9 - j - k)] in pieces for k in range(1, abs( 9 - j - k_x)) if k_x < 9 - j and k_y < i + 1)):
+                          check_list.append("B ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "B*":
+                      if (abs( 9 - j - k_x ) == abs( i + 1 - k_y) and (not any(board[min(i + 1, k_y) - 1 + k][9 - ( 9 - j + k)] in pieces for k in range(1, abs(9 - j - k_x)) if k_x > 9 - j and k_y > i + 1) and not any(board[min( i + 1, k_y) - 1 + k][9 - (from_x - k)] in pieces for k in range(1, abs( 9 - j - k_x)) if k_x < 9 - j and k_y > i + 1) and not any(board[max( i + 1, k_y) - 1 - k][9 - ( 9 - j + k)] in pieces for k in range(1, abs( 9 - j - k_x)) if k_x > 9 - j and k_y < i + 1) and not any(board[max( i + 1, k_y) - 1 - k][9 - ( 9 - j - k)] in pieces for k in range(1, abs( 9 - j - k_x)) if k_x < 9 - j and k_y < i + 1))) or ((abs( 9 - j - k_x)) <= 1 and abs( i + 1 - k_y ) <= 1):
+                          check_list.append("B*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "p ":
+                      if (9 - j) == k_x and (i + 1) == k_y:
+                          check_list.append("p ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "p*":
+                      if (abs((9 - j) - k_x) <= 1 and ( 0 <= k_y - 1 - i <= 1)) or ((9 - j) == k_x and (abs((i + 1) - k_y) <= 1)):
+                          check_list.append("p*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "l ":
+                      if (9 - j) == k_x and (i + 1) < k_y and ((not(any( board[ k ][ j ] in b_pieces for k in range( ( i + 1 ), ( k_y - 2 ), 1)))) and (not(any( board[ k ][ j ] in w_pieces for k in range( ( i + 1 ), ( k_y - 2 ), 1))))):
+                          check_list.append("l ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "l*":
+                      if (abs((9 - j) - k_x) <= 1 and ( 0 <= k_y - 1 - i <= 1)) or ((9 - j) == k_x and (abs((i + 1) - k_y) <= 1)):
+                          check_list.append("l*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "n ":
+                      if (abs((9 - j) - k_x)) == 1 and ( k_y - 1 - i == 2):
+                          check_list.append("n ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "n*":
+                      if (abs((9 - j) - k_x) <= 1 and ( 0 <= k_y - 1 - i <= 1)) or ((9 - j) == k_x and (abs((i + 1) - k_y) <= 1)):
+                          check_list.append("n*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "s ":
+                      if (abs((9 - j) - k_x) <= 1 and ( k_y - 1 - i == 1)) or (abs((9 - j) - k_x == 1) and ( i - (k_y - 1) == 1)):
+                          check_list.append("s ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "s*":
+                      if (abs((9 - j) - K_x) <= 1 and ( 0 <= K_y - 1 - i <= 1)) or ((9 - j) == K_x and (abs((i + 1) - K_y) <= 1)):
+                          check_list.append("s*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "g ":
+                      if (abs((9 - j) - K_x) <= 1 and ( 0 <= K_y - 1 - i <= 1)) or ((9 - j) == K_x and (abs((i + 1) - K_y) <= 1)):
+                          check_list.append("g ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "r ":
+                      if ((9 - K_x == j) or ( K_y - 1 == i )) and ((not(any( board[ k ][ j ] in pieces for k in range( min( K_y, i + 1 ), max( K_y, i + 1 ) - 1 )))) and (not(any( board[ i ][ k ] in pieces for k in range( min(9 - K_x, j) + 1, max(9 - K_x, j) ))))):
+                          check_list.append("r ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "r*":
+                      if ((9 - K_x == j) or ( K_y - 1 == i )) and ((not(any( board[ k ][ j ] in pieces for k in range( min( K_y, i + 1 ), max( K_y, i + 1 ) - 1 )))) and (not(any( board[ i ][ k ] in pieces for k in range( min(9 - K_x, j) + 1, max(9 - K_x, j) ))))) or ((abs( 9 - j - K_x)) <= 1 and abs( i + 1 - K_y ) <= 1):
+                          check_list.append("r*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "b ":
+                      if abs( 9 - j - K_x ) == abs( i + 1 - K_y) and (not any(board[min(i + 1, K_y) - 1 + k][9 - ( 9 - j + k)] in pieces for k in range(1, abs(9 - j - K_x)) if K_x > 9 - j and K_y > i + 1) and not any(board[min( i + 1, K_y) - 1 + k][9 - ( 9 - j - k)] in pieces for k in range(1, abs( 9 - j - K_x)) if K_x < 9 - j and K_y > i + 1) and not any(board[max( i + 1, K_y) - 1 - k][9 - ( 9 - j + k)] in pieces for k in range(1, abs( 9 - j - K_x)) if K_x > 9 - j and K_y < i + 1) and not any(board[max( i + 1, K_y) - 1 - k][9 - ( 9 - j - k)] in pieces for k in range(1, abs( 9 - j - K_x)) if K_x < 9 - j and K_y < i + 1)):
+                          check_list.append("b ")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+                  elif analyse_target == "b*":
+                      if (abs( 9 - j - K_x ) == abs( i + 1 - K_y) and (not any(board[min(i + 1, K_y) - 1 + k][9 - ( 9 - j + k)] in pieces for k in range(1, abs(9 - j - K_x)) if K_x > 9 - j and K_y > i + 1) and not any(board[min( i + 1, K_y) - 1 + k][9 - ( 9 - j - k)] in pieces for k in range(1, abs( 9 - j - K_x)) if K_x < 9 - j and K_y > i + 1) and not any(board[max( i + 1, K_y) - 1 - k][9 - ( 9 - j + k)] in pieces for k in range(1, abs( 9 - j - K_x)) if K_x > 9 - j and K_y < i + 1) and not any(board[max( i + 1, K_y) - 1 - k][9 - ( 9 - j - k)] in pieces for k in range(1, abs( 9 - j - K_x)) if K_x < 9 - j and K_y < i + 1))) or ((abs( 9 - j - K_x)) <= 1 and abs( i + 1 - K_y ) <= 1):
+                          check_list.append("b*")
+                          checker_coordinates.append( str(9 - j) + str(i + 1))
+          if ("N " in check_list):
+              move_need = True
+          for checker_coordinate in checker_coordinates:
+              if abs(int(checker_coordinates[checker_coordinate][0]) - k_x ) <= 1 and abs(int(checker_coordinates[checker_coordinate][1]) - k_y ) <= 1:
+                  move_need = True
+                  avoid.append( checker_coordinates[checker_coordinate])
+          if len(check_list) > 0:
+              check = True
+          if next == 0:   #Switch the next player
+              next = 1
+          else:
+              next = 0
+          if checkmate:
+              print("Checkmate")
+              end = True
+              print( players[next] + " lost the game.")
+              break
+      
+      
+      
+          elif any( abs(int(checker_coordinates[i][0]) - k_x ) <= 1 for i in range( len( checker_coordinates ))) or any( abs(int(checker_coordinates[i][1]) - k_y ) <= 1 for i in range( len( checker_coordinates ))):
+              move_need = True
+    </py-script>
+  </body>
+</html>
